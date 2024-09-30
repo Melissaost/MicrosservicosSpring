@@ -1,0 +1,95 @@
+services:
+  sqlUsuario:
+    image: mysql:8.0.32
+    container_name: sqlUsuario
+    ports:
+      - "3308:3308"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: treinamento_java_db  # Define o nome do banco de dados
+    command: ["--port=3308", "--init-file=/docker-entrypoint-initdb.d/initUsuario.sql"]  # Arquivo SQL de inicialização
+    volumes:
+      - ./initUsuario.sql:/docker-entrypoint-initdb.d/initUsuario.sql:ro  # Monta o arquivo SQL
+    networks:
+      - notificar
+  sqlPublicador:
+    image: mysql:8.0.32
+    container_name: sqlPublicador
+    ports:
+      - "3309:3309"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: publicador_db  # Define o nome do banco de dados
+    command: ["--port=3309", "--init-file=/docker-entrypoint-initdb.d/initPublicador.sql"]  # Arquivo SQL de inicialização
+    volumes:
+      - ./initPublicador.sql:/docker-entrypoint-initdb.d/initPublicador.sql:ro  # Monta o arquivo SQL
+    networks:
+      - notificar
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ./dados:/var/lib/rabbitmq/
+    environment:
+      - RABBITMQ_DEFAULT_USER=melissa
+      - RABBITMQ_DEFAULT_PASS=melissa
+    networks:
+      - notificar
+  eureka-server:
+    image: melissaost/eureka:1.1
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - notificar
+  publicador-service:
+    image: melissaost/publicador:1.4
+    container_name: publicador
+    networks:
+      - notificar
+    depends_on:
+      - sqlPublicador
+      - eureka-server
+      - rabbitmq
+    environment:
+    - SPRING_PROFILES_ACTIVE=prod
+  notificador-service:
+    image: melissaost/notificador:1.3
+    container_name: notificador
+    networks:
+      - notificar
+    depends_on:
+      - sqlPublicador
+      - eureka-server
+      - rabbitmq
+      - publicador-service
+    environment:
+    - SPRING_PROFILES_ACTIVE=prod
+  usuario-service:
+    image: melissaost/usuario:1.3
+    container_name: usuario
+    networks:
+      - notificar
+    depends_on:
+      - eureka-server
+      - sqlUsuario
+    environment:
+    - SPRING_PROFILES_ACTIVE=prod
+  gateway-service:
+    image: melissaost/gateway:1.2
+    container_name: gateway
+    networks:
+      - notificar
+    depends_on:
+      - eureka-server
+    ports:
+      - "9999:9999"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+networks:
+  notificar:
+    driver: bridge

@@ -75,6 +75,7 @@
 
 	<build>
 		<plugins>
+			<!-- Configuração do compilador -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -82,6 +83,20 @@
 				<configuration>
 					<source>${java.version}</source>
 					<target>${java.version}</target>
+				</configuration>
+			</plugin>
+
+			<!-- Plugin do Spring Boot -->
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<excludes>
+						<exclude>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+						</exclude>
+					</excludes>
 				</configuration>
 			</plugin>
 		</plugins>
